@@ -1,6 +1,9 @@
+using WebAPI.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
+builder.Services.AddScoped<ITripService, TripService>();
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
