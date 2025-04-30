@@ -132,7 +132,7 @@ public class ClientService : IClientService
     public async Task<ClientResponseDto?> FindByEmailAsync(string email)
     {
         // Selects all clients that have email = '@Email' (email is unique - so only zero/one client will be selected)
-        string sql = "SELECT * FROM Client WHERE Email = @Email";
+        string sql = "SELECT * FROM Client WHERE email = @Email";
 
         ClientResponseDto? client = null;
 
@@ -163,7 +163,7 @@ public class ClientService : IClientService
     public async Task<ClientResponseDto?> FindByPeselAsync(string pesel)
     {
         // Selects all clients that have pesel = '@Pesel' (pesel is unique - so only zero/one client will be selected)
-        string sql = "SELECT * FROM Client WHERE Email = @Pesel";
+        string sql = "SELECT * FROM Client WHERE pesel = @Pesel";
 
         ClientResponseDto? client = null;
 
