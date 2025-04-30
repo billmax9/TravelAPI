@@ -37,7 +37,7 @@ public class ClientService : IClientService
         return clients;
     }
 
-    public async Task<ClientResponseDto?> FindByIdAsync(long id)
+    public async Task<ClientResponseDto?> FindByIdAsync(int id)
     {
         string sql = "SELECT * FROM Client WHERE IdClient = @clientId";
 
@@ -68,7 +68,7 @@ public class ClientService : IClientService
     }
 
     // Client Service impl
-    public async Task<IEnumerable<ClientTripsResponseDto>> FindTripsByClientIdAsync(long id)
+    public async Task<IEnumerable<ClientTripsResponseDto>> FindTripsByClientIdAsync(int id)
     {
         ClientResponseDto? client = await FindByIdAsync(id);
         if (client == null)

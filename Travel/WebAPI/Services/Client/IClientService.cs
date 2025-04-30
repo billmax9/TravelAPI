@@ -4,7 +4,7 @@ namespace WebAPI.Services.Client;
 
 public interface IClientService : IBaseService<ClientResponseDto>
 {
-    Task<IEnumerable<ClientTripsResponseDto>> FindTripsByClientIdAsync(long id);
+    Task<IEnumerable<ClientTripsResponseDto>> FindTripsByClientIdAsync(int id);
 
     Task<ClientResponseDto?> FindByEmailAsync(string email);
 

@@ -14,7 +14,7 @@ public class TripService : ITripService
 
     }
 
-    public async Task<TripResponseDto?> FindByIdAsync(long id)
+    public async Task<TripResponseDto?> FindByIdAsync(int id)
     {
         throw new NotImplementedException();
     }
@@ -22,7 +22,7 @@ public class TripService : ITripService
     // Trip Service Impl
     public async Task<IEnumerable<TripCountriesResponseDto>> FindAllTripCountriesAsync()
     {
-       Dictionary<long, TripCountriesResponseDto> tripsDict = new Dictionary<long, TripCountriesResponseDto>();
+       Dictionary<int, TripCountriesResponseDto> tripsDict = new Dictionary<int, TripCountriesResponseDto>();
 
         string sql = """"
                         SELECT

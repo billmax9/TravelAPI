@@ -5,6 +5,6 @@ public interface IBaseService<T>
 
     Task<IEnumerable<T>> FindAllAsync();
 
-    Task<T?> FindByIdAsync(long id);
+    Task<T?> FindByIdAsync(int id);
 
 }

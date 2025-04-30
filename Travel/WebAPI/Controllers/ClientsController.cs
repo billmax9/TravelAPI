@@ -24,8 +24,8 @@ public class ClientsController : ControllerBase
     }
 
     [HttpGet]
-    [Route("{id:long}")]
-    public async Task<IActionResult> GetById(long id)
+    [Route("{id:int}")]
+    public async Task<IActionResult> GetById(int id)
     {
         ClientResponseDto? client = await _clientService.FindByIdAsync(id);
 
@@ -33,8 +33,8 @@ public class ClientsController : ControllerBase
     }
 
     [HttpGet]
-    [Route("{id:long}/trips")]
-    public async Task<IActionResult> GetClientsTripsByClientId(long id)
+    [Route("{id:int}/trips")]
+    public async Task<IActionResult> GetClientsTripsByClientId(int id)
     {
         try
         {
