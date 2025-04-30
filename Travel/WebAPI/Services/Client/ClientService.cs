@@ -68,22 +68,13 @@ public class ClientService : IClientService
     }
 
     // Client Service impl
-    public async Task<ClientTripsResponseDto?> FindTripsByClientIdAsync(long id)
+    public async Task<IEnumerable<ClientTripsResponseDto>> FindTripsByClientIdAsync(long id)
     {
         ClientResponseDto? client = await FindByIdAsync(id);
         if (client == null)
-            return null;
+            throw new EntityNotFoundException($"Client with id {id} was not found");
 
-        ClientTripsResponseDto clientTripsResponse = new ClientTripsResponseDto
-        {
-            Id = client.Id,
-            FirstName = client.FirstName,
-            LastName = client.LastName,
-            Email = client.Email,
-            PhoneNumber = client.PhoneNumber,
-            Pesel = client.Pesel,
-            Trips = new List<ClientTripResponseDto>()
-        };
+        List<ClientTripsResponseDto> clientTrips = new List<ClientTripsResponseDto>();
 
         string sql = """
                      SELECT
@@ -103,7 +94,7 @@ public class ClientService : IClientService
 
             while (await reader.ReadAsync())
             {
-                clientTripsResponse.Trips.Add(new ClientTripResponseDto
+                clientTrips.Add(new ClientTripsResponseDto
                 {
                     Id = reader.GetInt32(reader.GetOrdinal("IdTrip")),
                     Name = reader.GetString(reader.GetOrdinal("Name")),
@@ -117,7 +108,7 @@ public class ClientService : IClientService
             }
         }
 
-        return clientTripsResponse;
+        return clientTrips;
     }
 
     public async Task<ClientResponseDto?> FindByEmailAsync(string email)
@@ -187,7 +178,7 @@ public class ClientService : IClientService
             throw new EntityAlreadyExistsException($"Client with email {requestDto.Email} already exists");
         duplicate = await FindByPeselAsync(requestDto.Pesel);
         if (duplicate != null)
-            throw new EntityAlreadyExistsException($"Clien with pesel {requestDto.Pesel} already exists");
+            throw new EntityAlreadyExistsException($"Client with pesel {requestDto.Pesel} already exists");
 
         string sql = """
                      INSERT INTO Client(FirstName, LastName, Email, Telephone, Pesel)

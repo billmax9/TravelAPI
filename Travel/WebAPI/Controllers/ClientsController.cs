@@ -36,14 +36,17 @@ public class ClientsController : ControllerBase
     [Route("{id:long}/trips")]
     public async Task<IActionResult> GetClientsTripsByClientId(long id)
     {
-        ClientTripsResponseDto? clientTrips = await _clientService.FindTripsByClientIdAsync(id);
-
-        if (clientTrips == null)
-            return NotFound(new {Message = $"Client with id {id} was not found"});
-        if (clientTrips?.Trips.Count == 0)
-            return NotFound(new {Message = $"Client with id {id} has no trips", clientTrips});
-
-        return Ok(clientTrips);
+        try
+        {
+            IEnumerable<ClientTripsResponseDto> clientTrips = await _clientService.FindTripsByClientIdAsync(id);
+            return clientTrips.Count() == 0
+                ? NotFound(new { Message = $"Client with id {id} has no trips" })
+                : Ok(clientTrips);
+        }
+        catch (EntityNotFoundException e)
+        {
+            return NotFound(new { e.Message });
+        }
     }
 
     [HttpPost]
