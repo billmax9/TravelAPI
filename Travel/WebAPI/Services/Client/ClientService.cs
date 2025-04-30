@@ -1,12 +1,23 @@
 using Microsoft.Data.SqlClient;
 using WebAPI.DTOs.Client;
+using WebAPI.DTOs.Trip;
 using WebAPI.Exceptions;
+using WebAPI.Services.Trip;
 using WebAPI.Utils;
 
 namespace WebAPI.Services.Client;
 
 public class ClientService : IClientService
 {
+
+    private readonly ITripService _tripService;
+
+    public ClientService(ITripService tripService)
+    {
+        _tripService = tripService;
+    }
+    
+    
     // Base Service impl
     public async Task<IEnumerable<ClientResponseDto>> FindAllAsync()
     {
@@ -39,14 +50,14 @@ public class ClientService : IClientService
 
     public async Task<ClientResponseDto?> FindByIdAsync(int id)
     {
-        string sql = "SELECT * FROM Client WHERE IdClient = @clientId";
+        string sql = "SELECT * FROM Client WHERE IdClient = @ClientId";
 
         ClientResponseDto? client = null;
 
         using (SqlConnection connection = new SqlConnection(Constants.DockerConnectionString))
         using (SqlCommand command = new SqlCommand(sql, connection))
         {
-            command.Parameters.AddWithValue("@clientId", id);
+            command.Parameters.AddWithValue("@ClientId", id);
             await connection.OpenAsync();
 
             var reader = await command.ExecuteReaderAsync();
@@ -81,13 +92,13 @@ public class ClientService : IClientService
                          t.IdTrip, Name, Description, DateFrom, DateTo, MaxPeople,
                          RegisteredAt, PaymentDate FROM
                      Trip t
-                     INNER JOIN Client_Trip ct ON ct.IdTrip = t.IdTrip AND ct.IdClient = @clientId;
+                     INNER JOIN Client_Trip ct ON ct.IdTrip = t.IdTrip AND ct.IdClient = @ClientId;
                      """;
 
         using (SqlConnection connection = new SqlConnection(Constants.DockerConnectionString))
         using (SqlCommand command = new SqlCommand(sql, connection))
         {
-            command.Parameters.AddWithValue("@clientId", id);
+            command.Parameters.AddWithValue("@ClientId", id);
             await connection.OpenAsync();
 
             var reader = await command.ExecuteReaderAsync();
@@ -103,7 +114,9 @@ public class ClientService : IClientService
                     DateTo = reader.GetDateTime(reader.GetOrdinal("DateTo")),
                     MaxPeople = reader.GetInt32(reader.GetOrdinal("MaxPeople")),
                     RegisteredAt = reader.GetInt32(reader.GetOrdinal("RegisteredAt")),
-                    PaymentDate = reader.GetInt32(reader.GetOrdinal("PaymentDate")),
+                    PaymentDate = reader.IsDBNull(reader.GetOrdinal("PaymentDate")) 
+                        ? null 
+                        : reader.GetInt32(reader.GetOrdinal("PaymentDate")),
                 });
             }
         }
@@ -113,14 +126,14 @@ public class ClientService : IClientService
 
     public async Task<ClientResponseDto?> FindByEmailAsync(string email)
     {
-        string sql = "SELECT * FROM Client WHERE Email = @email";
+        string sql = "SELECT * FROM Client WHERE Email = @Email";
 
         ClientResponseDto? client = null;
 
         using (SqlConnection connection = new SqlConnection(Constants.DockerConnectionString))
         using (SqlCommand command = new SqlCommand(sql, connection))
         {
-            command.Parameters.AddWithValue("@email", email);
+            command.Parameters.AddWithValue("@Email", email);
             await connection.OpenAsync();
 
             var reader = await command.ExecuteReaderAsync();
@@ -143,14 +156,14 @@ public class ClientService : IClientService
 
     public async Task<ClientResponseDto?> FindByPeselAsync(string pesel)
     {
-        string sql = "SELECT * FROM Client WHERE Email = @pesel";
+        string sql = "SELECT * FROM Client WHERE Email = @Pesel";
 
         ClientResponseDto? client = null;
 
         using (SqlConnection connection = new SqlConnection(Constants.DockerConnectionString))
         using (SqlCommand command = new SqlCommand(sql, connection))
         {
-            command.Parameters.AddWithValue("@pesel", pesel);
+            command.Parameters.AddWithValue("@Pesel", pesel);
             await connection.OpenAsync();
 
             var reader = await command.ExecuteReaderAsync();
@@ -171,7 +184,7 @@ public class ClientService : IClientService
         return client;
     }
 
-    public async Task<int> CreateAsync(ClientRequestDto requestDto)
+    public async Task<int> CreateClientAsync(ClientRequestDto requestDto)
     {
         ClientResponseDto? duplicate = await FindByEmailAsync(requestDto.Email);
         if (duplicate != null)
@@ -198,6 +211,45 @@ public class ClientService : IClientService
 
             var result = await command.ExecuteScalarAsync();
             return Convert.ToInt32(result);
+        }
+    }
+
+    public async Task<bool> RegisterClientTripAsync(int clientId, int tripId)
+    {
+        ClientResponseDto? client = await FindByIdAsync(clientId);
+        if (client == null)
+            throw new EntityNotFoundException($"Client with id {clientId} was not found!");
+
+        // Automatically checks if trip with id 'tripId' exists and throws exception EntityNotFoundException
+        List<TripClientsResponseDto> trips = (await _tripService.FindTripClientsByTripIdAsync(tripId)).ToList();
+
+        TripResponseDto? trip = await _tripService.FindByIdAsync(tripId);
+
+        if (trips.Count == trip?.MaxPeople)
+            throw new TripReachedPlacesLimitException($"Trip {trip.Name} has not available places. Limit reached {trips.Count} / {trip.MaxPeople}");
+
+        TripClientsResponseDto? alreadyRegisteredClient = trips.Find(c => c.Id == clientId);
+        if (alreadyRegisteredClient != null)
+            throw new ClientAlreadyRegisteredException($"Client {alreadyRegisteredClient.FirstName} {alreadyRegisteredClient.LastName} already registered to trip {trip?.Name}");
+
+        var now = DateTime.Now.ToString("yyyyMMdd");
+        int registrationDate = Convert.ToInt32(now);
+        
+        string sql = """
+                     INSERT INTO Client_Trip(IdClient, IdTrip, RegisteredAt) 
+                     VALUES (@ClientId, @TripId, @RegistrationDate);
+                     """;
+
+        using (SqlConnection connection = new SqlConnection(Constants.DockerConnectionString))
+        using (SqlCommand command = new SqlCommand(sql, connection))
+        {
+            command.Parameters.AddWithValue("@ClientId", clientId);
+            command.Parameters.AddWithValue("@TripId", tripId);
+            command.Parameters.AddWithValue("@RegistrationDate", registrationDate);
+            await connection.OpenAsync();
+
+            var affected = await command.ExecuteNonQueryAsync();
+            return affected > 0;
         }
     }
 }

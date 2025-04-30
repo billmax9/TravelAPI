@@ -10,5 +10,7 @@ public interface IClientService : IBaseService<ClientResponseDto>
 
     Task<ClientResponseDto?> FindByPeselAsync(string pesel);
     
-    Task<int> CreateAsync(ClientRequestDto requestDto);
+    Task<int> CreateClientAsync(ClientRequestDto requestDto);
+
+    Task<bool> RegisterClientTripAsync(int clientId, int tripId);
 }
