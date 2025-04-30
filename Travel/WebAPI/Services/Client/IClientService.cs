@@ -13,4 +13,6 @@ public interface IClientService : IBaseService<ClientResponseDto>
     Task<int> CreateClientAsync(ClientRequestDto requestDto);
 
     Task<bool> RegisterClientTripAsync(int clientId, int tripId);
+
+    Task<bool> DeleteTripRegistrationAsync(int clientId, int tripId);
 }

@@ -1,6 +1,3 @@
 namespace WebAPI.Exceptions;
 
-public class ClientAlreadyRegisteredException(string? message) : Exception(message)
-{
-    
-}
+public class ClientAlreadyRegisteredException(string? message) : Exception(message);

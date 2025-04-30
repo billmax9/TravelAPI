@@ -186,6 +186,10 @@ public class ClientService : IClientService
 
     public async Task<int> CreateClientAsync(ClientRequestDto requestDto)
     {
+        ClientValidationService.ValidateEmail(requestDto.Email);
+        ClientValidationService.ValidatePhoneNumber(requestDto.PhoneNumber);
+        ClientValidationService.ValidatePesel(requestDto.Pesel);
+        
         ClientResponseDto? duplicate = await FindByEmailAsync(requestDto.Email);
         if (duplicate != null)
             throw new EntityAlreadyExistsException($"Client with email {requestDto.Email} already exists");
@@ -225,12 +229,12 @@ public class ClientService : IClientService
 
         TripResponseDto? trip = await _tripService.FindByIdAsync(tripId);
 
-        if (trips.Count == trip?.MaxPeople)
-            throw new TripReachedPlacesLimitException($"Trip {trip.Name} has not available places. Limit reached {trips.Count} / {trip.MaxPeople}");
-
         TripClientsResponseDto? alreadyRegisteredClient = trips.Find(c => c.Id == clientId);
         if (alreadyRegisteredClient != null)
             throw new ClientAlreadyRegisteredException($"Client {alreadyRegisteredClient.FirstName} {alreadyRegisteredClient.LastName} already registered to trip {trip?.Name}");
+        
+        if (trips.Count == trip?.MaxPeople)
+            throw new TripReachedPlacesLimitException($"Trip {trip.Name} has not available places. Limit reached {trips.Count} / {trip.MaxPeople}");
 
         var now = DateTime.Now.ToString("yyyyMMdd");
         int registrationDate = Convert.ToInt32(now);
@@ -250,6 +254,35 @@ public class ClientService : IClientService
 
             var affected = await command.ExecuteNonQueryAsync();
             return affected > 0;
+        }
+    }
+
+    public async Task<bool> DeleteTripRegistrationAsync(int clientId, int tripId)
+    {
+        ClientResponseDto? client = await FindByIdAsync(clientId);
+        if (client == null)
+            throw new EntityNotFoundException($"Client with id {clientId} was not found!");
+        
+        // Automatically checks if trip with id 'tripId' exists and throws exception EntityNotFoundException
+        List<TripClientsResponseDto> trips = (await _tripService.FindTripClientsByTripIdAsync(tripId)).ToList();
+        TripResponseDto? trip = await _tripService.FindByIdAsync(tripId);
+
+        bool isClientRegistered = trips.Any(c => c.Id == clientId);
+        if (!isClientRegistered)
+            throw new ClientNotRegisteredException($"Client {client.FirstName} {client.LastName} is not registered to trip {trip?.Name} ");
+
+        string sql = "DELETE FROM Client_Trip WHERE IdClient = @ClientId AND IdTrip = @TripId";
+
+        using (SqlConnection connection = new SqlConnection(Constants.DockerConnectionString))
+        using (SqlCommand command = new SqlCommand(sql, connection))
+        {
+            command.Parameters.AddWithValue("@ClientId", clientId);
+            command.Parameters.AddWithValue("@TripId", tripId);
+
+            await connection.OpenAsync();
+
+            var affectedRows = await command.ExecuteNonQueryAsync();
+            return affectedRows > 0;
         }
     }
 }

@@ -20,37 +20,64 @@ public class ClientsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        IEnumerable<ClientResponseDto> clients = await _clientService.FindAllAsync();
-        return Ok(clients);
+        try
+        {
+            IEnumerable<ClientResponseDto> clients = await _clientService.FindAllAsync();
+            return Ok(clients);
+        }
+        catch (Exception e)
+        {
+            return StatusCode(500, new { e.Message });
+        }
     }
 
     [HttpGet]
     [Route("{id:int}")]
     public async Task<IActionResult> GetById(int id)
     {
-        ClientResponseDto? client = await _clientService.FindByIdAsync(id);
-
-        return client == null ? NotFound($"Client with id {id} was not found") : Ok(client);
+        try
+        {
+            ClientResponseDto? client = await _clientService.FindByIdAsync(id);
+            return client == null ? NotFound($"Client with id {id} was not found") : Ok(client);
+        }
+        catch (Exception e)
+        {
+            return StatusCode(500, new { e.Message });
+        }
     }
 
     [HttpGet]
     [Route("pesel/{pesel}")]
     public async Task<IActionResult> GetByPesel(string pesel)
     {
-        ClientResponseDto? client = await _clientService.FindByPeselAsync(pesel);
-        return client == null
-            ? NotFound(new { Message = $"Client with pesel {pesel} was not found!" })
-            : Ok(client);
+        try
+        {
+            ClientResponseDto? client = await _clientService.FindByPeselAsync(pesel);
+            return client == null
+                ? NotFound(new { Message = $"Client with pesel {pesel} was not found!" })
+                : Ok(client);
+        }
+        catch (Exception e)
+        {
+            return StatusCode(500, new { e.Message });
+        }
     }
 
     [HttpGet]
     [Route("email/{email}")]
     public async Task<IActionResult> GetByEmail(string email)
     {
-        ClientResponseDto? client = await _clientService.FindByEmailAsync(email);
-        return client == null
-            ? NotFound(new { Message = $"Client with email {email} was not found!" })
-            : Ok(client);
+        try
+        {
+            ClientResponseDto? client = await _clientService.FindByEmailAsync(email);
+            return client == null
+                ? NotFound(new { Message = $"Client with email {email} was not found!" })
+                : Ok(client);
+        }
+        catch (Exception e)
+        {
+            return StatusCode(500, new { e.Message });
+        }
     }
 
     [HttpGet]
@@ -68,6 +95,10 @@ public class ClientsController : ControllerBase
         {
             return NotFound(new { e.Message });
         }
+        catch (Exception e)
+        {
+            return StatusCode(500, new { e.Message });
+        }
     }
 
     [HttpPost]
@@ -81,6 +112,14 @@ public class ClientsController : ControllerBase
         catch (EntityAlreadyExistsException e)
         {
             return BadRequest(new { e.Message });
+        }
+        catch (ValidationException e)
+        {
+            return BadRequest(new { e.Message });
+        }
+        catch (Exception e)
+        {
+            return StatusCode(500, new { e.Message });
         }
     }
 
@@ -105,9 +144,35 @@ public class ClientsController : ControllerBase
             Console.WriteLine("Trip is full: " + e.Message);
             return Conflict(new { e.Message });
         }
-        // catch (Exception e)
-        // {
-        //     return StatusCode(500, new { e.Message });
-        // }
+        catch (Exception e)
+        {
+            return StatusCode(500, new { e.Message });
+        }
+    }
+
+    [HttpDelete]
+    [Route("{clientId:int}/trips/{tripId:int}")]
+    public async Task<IActionResult> DeleteRegistration(int clientId, int tripId)
+    {
+        try
+        {
+            bool result = await _clientService.DeleteTripRegistrationAsync(clientId, tripId);
+
+            return result == false
+                ? StatusCode(500, new { Message = "Something went wrong..." })
+                : Ok(new { Message = "Registration was successfully deleted!" });
+        }
+        catch (EntityNotFoundException e)
+        {
+            return NotFound(new { e.Message });
+        }
+        catch (ClientNotRegisteredException e)
+        {
+            return NotFound(new { e.Message });
+        }
+        catch (Exception e)
+        {
+            return StatusCode(500, new { e.Message });
+        }
     }
 }
