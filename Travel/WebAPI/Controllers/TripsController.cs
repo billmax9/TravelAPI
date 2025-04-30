@@ -18,6 +18,8 @@ public class TripsController : ControllerBase
     }
 
     
+    // Returns all trips along with the list of countries associated with each trip.
+    // In case of any unexpected exceptions returns 500 Status code with message
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
@@ -32,6 +34,9 @@ public class TripsController : ControllerBase
         }
     }
 
+    // Returns all registered client to trip
+    // If trip with id can't be found - 404 Not Found is returned with appropriate message
+    // In case of any unexpected exceptions returns 500 Status code with message
     [HttpGet]
     [Route("{id:int}/clients")]
     public async Task<IActionResult> GetAllRegisteredClients(int id)

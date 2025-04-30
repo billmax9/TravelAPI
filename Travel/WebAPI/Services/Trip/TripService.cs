@@ -18,6 +18,8 @@ public class TripService : ITripService
     {
         TripResponseDto? trip = null;
 
+
+        // Selects all trips having IdTrip = '@TripId' (id is a primary key - so only zero/one trip will be selected)
         string sql = "SELECT * FROM Trip WHERE IdTrip = @TripId";
 
         using (SqlConnection connection = new SqlConnection(Constants.DockerConnectionString))
@@ -49,6 +51,7 @@ public class TripService : ITripService
     {
         Dictionary<int, TripCountriesResponseDto> tripsDict = new Dictionary<int, TripCountriesResponseDto>();
 
+        // Selects all trips along with the countries where each trip is available
         string sql = """"
                         SELECT
                             t.IdTrip, t.Name,
@@ -135,8 +138,8 @@ public class TripService : ITripService
                     PhoneNumber = reader.GetString(reader.GetOrdinal("Telephone")),
                     Pesel = reader.GetString(reader.GetOrdinal("Pesel")),
                     RegisteredAt = reader.GetInt32(reader.GetOrdinal("RegisteredAt")),
-                    PaymentDate = reader.IsDBNull(reader.GetOrdinal("PaymentDate")) 
-                        ? null 
+                    PaymentDate = reader.IsDBNull(reader.GetOrdinal("PaymentDate"))
+                        ? null
                         : reader.GetInt32(reader.GetOrdinal("PaymentDate"))
                 });
             }

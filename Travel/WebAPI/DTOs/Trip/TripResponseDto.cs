@@ -8,7 +8,7 @@ public class TripResponseDto
     public DateTime DateFrom { get; set; }
     public DateTime DateTo { get; set; }
     public int MaxPeople { get; set; }
-    
+
     public override bool Equals(object? trip)
     {
         if (trip is not TripCountriesResponseDto other) return false;

@@ -50,17 +50,17 @@ public static class ClientValidationService
 
         if (peselDigits.Length != PeselLength)
             throw new ValidationException("Ensure PESEL consist of only from digits!");
-        
+
         int checksum = 0;
-        
+
         for (int i = 0; i < pesel.Length - 1; ++i)
             checksum += peselDigits[i] * PeselChecksumDigitCoefficients[i];
-        
+
         int controlDigit = (10 - (checksum % 10)) % 10;
         if (controlDigit != peselDigits[PeselLength - 1])
             throw new ValidationException("Invalid PESEL");
     }
-    
+
     private static void CheckEmptiness(string str, string errorMessage)
     {
         if (str.IsNullOrEmpty())
@@ -68,5 +68,4 @@ public static class ClientValidationService
             throw new ValidationException(errorMessage);
         }
     }
-    
 }

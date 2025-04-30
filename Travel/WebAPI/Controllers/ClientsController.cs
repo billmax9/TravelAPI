@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using WebAPI.DTOs.Client;
 using WebAPI.Exceptions;
@@ -17,6 +16,9 @@ public class ClientsController : ControllerBase
         _clientService = clientService;
     }
 
+
+    // Returns all information about clients stored in database.
+    // In case of any unexpected exceptions returns 500 Status code with message
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
@@ -31,6 +33,8 @@ public class ClientsController : ControllerBase
         }
     }
 
+    // Searching and returns client by specified id, in case if client does not exist in database, returns 404 NotFound with appropriate message
+    // In case of any unexpected exceptions returns 500 Status code with message
     [HttpGet]
     [Route("{id:int}")]
     public async Task<IActionResult> GetById(int id)
@@ -46,6 +50,8 @@ public class ClientsController : ControllerBase
         }
     }
 
+    // Searching and returns client by specified pesel, in case if client with provided pesel does not exist in database, returns 404 NotFound with appropriate message
+    // In case of any unexpected exceptions returns 500 Status code with message
     [HttpGet]
     [Route("pesel/{pesel}")]
     public async Task<IActionResult> GetByPesel(string pesel)
@@ -63,6 +69,8 @@ public class ClientsController : ControllerBase
         }
     }
 
+    // Searching and returns client by specified email, in case if client with provided email does not exist in database, returns 404 NotFound with appropriate message
+    // In case of any unexpected exceptions returns 500 Status code with message
     [HttpGet]
     [Route("email/{email}")]
     public async Task<IActionResult> GetByEmail(string email)
@@ -79,7 +87,10 @@ public class ClientsController : ControllerBase
             return StatusCode(500, new { e.Message });
         }
     }
-
+    
+    // Returns all client's trips that client is registered to.
+    // If client with provided id does not exist in database or client is not registered to any trip - 404 NotFound is returned (with appropriate message) 
+    // In case of any unexpected exceptions returns 500 Status code with message
     [HttpGet]
     [Route("{id:int}/trips")]
     public async Task<IActionResult> GetClientsTripsByClientId(int id)
@@ -101,6 +112,10 @@ public class ClientsController : ControllerBase
         }
     }
 
+    
+    // Attempts to create a new client based on provided data
+    // In case of any validation errors - returns 400 BadRequest or in case if resource already exists - returns 409 Conflict
+    // In case of any unexpected exceptions returns 500 Status code with message
     [HttpPost]
     public async Task<IActionResult> CreateClient(ClientRequestDto requestDto)
     {
@@ -111,7 +126,7 @@ public class ClientsController : ControllerBase
         }
         catch (EntityAlreadyExistsException e)
         {
-            return BadRequest(new { e.Message });
+            return Conflict(new { e.Message });
         }
         catch (ValidationException e)
         {
@@ -123,6 +138,9 @@ public class ClientsController : ControllerBase
         }
     }
 
+    // Registers a client to a specific trip.
+    // Returns 409 Conflict if the client is already registered or if there are no available places for the trip.
+    // In case of any unexpected exceptions returns 500 Status code with message
     [HttpPut]
     [Route("{clientId:int}/trips/{tripId:int}")]
     public async Task<IActionResult> RegisterClientToTrip(int clientId, int tripId)
@@ -137,11 +155,10 @@ public class ClientsController : ControllerBase
         }
         catch (ClientAlreadyRegisteredException e)
         {
-            return BadRequest(new { e.Message });
+            return Conflict(new { e.Message });
         }
         catch (TripReachedPlacesLimitException e)
         {
-            Console.WriteLine("Trip is full: " + e.Message);
             return Conflict(new { e.Message });
         }
         catch (Exception e)
@@ -149,7 +166,11 @@ public class ClientsController : ControllerBase
             return StatusCode(500, new { e.Message });
         }
     }
-
+    
+    
+    // Tries to remove a client's registration from a trip
+    // Returns 404 NotFound if trip or client with provided id was not found or if client does is not registered to trip with provided id
+    // In case of any unexpected exceptions returns 500 Status code with message
     [HttpDelete]
     [Route("{clientId:int}/trips/{tripId:int}")]
     public async Task<IActionResult> DeleteRegistration(int clientId, int tripId)

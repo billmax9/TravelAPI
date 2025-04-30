@@ -9,20 +9,20 @@ namespace WebAPI.Services.Client;
 
 public class ClientService : IClientService
 {
-
     private readonly ITripService _tripService;
 
     public ClientService(ITripService tripService)
     {
         _tripService = tripService;
     }
-    
-    
+
+
     // Base Service impl
     public async Task<IEnumerable<ClientResponseDto>> FindAllAsync()
     {
         List<ClientResponseDto> clients = new List<ClientResponseDto>();
 
+        // Selects all clients from database
         string sql = "SELECT * FROM Client";
 
         using (SqlConnection connection = new SqlConnection(Constants.DockerConnectionString))
@@ -50,6 +50,7 @@ public class ClientService : IClientService
 
     public async Task<ClientResponseDto?> FindByIdAsync(int id)
     {
+        // Selects all clients having IdClient = '@ClientId' (id is a primary key - so only zero/one client will be selected)
         string sql = "SELECT * FROM Client WHERE IdClient = @ClientId";
 
         ClientResponseDto? client = null;
@@ -87,6 +88,10 @@ public class ClientService : IClientService
 
         List<ClientTripsResponseDto> clientTrips = new List<ClientTripsResponseDto>();
 
+
+        // Selects trip information for a specific client, identified by @ClientId
+        // Joins the 'Client_Trip' table with the 'Trip' table to retrieve details about the trips 
+        // the client is registered for, including the registration date and payment date (if paid)
         string sql = """
                      SELECT
                          t.IdTrip, Name, Description, DateFrom, DateTo, MaxPeople,
@@ -114,8 +119,8 @@ public class ClientService : IClientService
                     DateTo = reader.GetDateTime(reader.GetOrdinal("DateTo")),
                     MaxPeople = reader.GetInt32(reader.GetOrdinal("MaxPeople")),
                     RegisteredAt = reader.GetInt32(reader.GetOrdinal("RegisteredAt")),
-                    PaymentDate = reader.IsDBNull(reader.GetOrdinal("PaymentDate")) 
-                        ? null 
+                    PaymentDate = reader.IsDBNull(reader.GetOrdinal("PaymentDate"))
+                        ? null
                         : reader.GetInt32(reader.GetOrdinal("PaymentDate")),
                 });
             }
@@ -126,6 +131,7 @@ public class ClientService : IClientService
 
     public async Task<ClientResponseDto?> FindByEmailAsync(string email)
     {
+        // Selects all clients that have email = '@Email' (email is unique - so only zero/one client will be selected)
         string sql = "SELECT * FROM Client WHERE Email = @Email";
 
         ClientResponseDto? client = null;
@@ -156,6 +162,7 @@ public class ClientService : IClientService
 
     public async Task<ClientResponseDto?> FindByPeselAsync(string pesel)
     {
+        // Selects all clients that have pesel = '@Pesel' (pesel is unique - so only zero/one client will be selected)
         string sql = "SELECT * FROM Client WHERE Email = @Pesel";
 
         ClientResponseDto? client = null;
@@ -189,7 +196,7 @@ public class ClientService : IClientService
         ClientValidationService.ValidateEmail(requestDto.Email);
         ClientValidationService.ValidatePhoneNumber(requestDto.PhoneNumber);
         ClientValidationService.ValidatePesel(requestDto.Pesel);
-        
+
         ClientResponseDto? duplicate = await FindByEmailAsync(requestDto.Email);
         if (duplicate != null)
             throw new EntityAlreadyExistsException($"Client with email {requestDto.Email} already exists");
@@ -197,6 +204,8 @@ public class ClientService : IClientService
         if (duplicate != null)
             throw new EntityAlreadyExistsException($"Client with pesel {requestDto.Pesel} already exists");
 
+
+        // Creates a new client, and selects id of last inserted record
         string sql = """
                      INSERT INTO Client(FirstName, LastName, Email, Telephone, Pesel)
                      VALUES (@FirstName, @LastName, @Email, @PhoneNumber, @Pesel);
@@ -231,16 +240,18 @@ public class ClientService : IClientService
 
         TripClientsResponseDto? alreadyRegisteredClient = trips.Find(c => c.Id == clientId);
         if (alreadyRegisteredClient != null)
-            throw new ClientAlreadyRegisteredException($"Client {alreadyRegisteredClient.FirstName} {alreadyRegisteredClient.LastName} already registered to trip {trip?.Name}");
-        
+            throw new ClientAlreadyRegisteredException(
+                $"Client {alreadyRegisteredClient.FirstName} {alreadyRegisteredClient.LastName} already registered to trip {trip?.Name}");
+
         if (trips.Count == trip?.MaxPeople)
-            throw new TripReachedPlacesLimitException($"Trip {trip.Name} has not available places. Limit reached {trips.Count} / {trip.MaxPeople}");
+            throw new TripReachedPlacesLimitException(
+                $"Trip {trip.Name} has not available places. Limit reached {trips.Count} / {trip.MaxPeople}");
 
         var now = DateTime.Now.ToString("yyyyMMdd");
         int registrationDate = Convert.ToInt32(now);
-        
+
         string sql = """
-                     INSERT INTO Client_Trip(IdClient, IdTrip, RegisteredAt) 
+                     INSERT INTO Client_Trip(IdClient, IdTrip, RegisteredAt)
                      VALUES (@ClientId, @TripId, @RegistrationDate);
                      """;
 
@@ -262,15 +273,17 @@ public class ClientService : IClientService
         ClientResponseDto? client = await FindByIdAsync(clientId);
         if (client == null)
             throw new EntityNotFoundException($"Client with id {clientId} was not found!");
-        
+
         // Automatically checks if trip with id 'tripId' exists and throws exception EntityNotFoundException
         List<TripClientsResponseDto> trips = (await _tripService.FindTripClientsByTripIdAsync(tripId)).ToList();
         TripResponseDto? trip = await _tripService.FindByIdAsync(tripId);
 
         bool isClientRegistered = trips.Any(c => c.Id == clientId);
         if (!isClientRegistered)
-            throw new ClientNotRegisteredException($"Client {client.FirstName} {client.LastName} is not registered to trip {trip?.Name} ");
+            throw new ClientNotRegisteredException(
+                $"Client {client.FirstName} {client.LastName} is not registered to trip {trip?.Name} ");
 
+        // Deletes the registration of a client from a specific trip 
         string sql = "DELETE FROM Client_Trip WHERE IdClient = @ClientId AND IdTrip = @TripId";
 
         using (SqlConnection connection = new SqlConnection(Constants.DockerConnectionString))
