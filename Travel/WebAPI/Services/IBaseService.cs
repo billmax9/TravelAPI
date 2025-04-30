@@ -3,10 +3,8 @@ namespace WebAPI.Services;
 public interface IBaseService<T>
 {
 
-    Task<IEnumerable<T>> findAllAsync();
+    Task<IEnumerable<T>> FindAllAsync();
 
-    Task<T?> findByIdAsycn(long id);
-    
-    Task<bool> deleteByIdAsync(long id);
+    Task<T?> FindByIdAsync(long id);
 
 }

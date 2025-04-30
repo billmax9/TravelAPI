@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using WebAPI.DTOs;
-using WebAPI.Services;
+using WebAPI.DTOs.Trip;
+using WebAPI.Services.Trip;
 
 namespace WebAPI.Controllers;
 
@@ -20,7 +20,7 @@ public class TripsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        IEnumerable<TripDto> trips = await _tripService.findAllAsync();
+        IEnumerable<TripCountriesResponseDto> trips = await _tripService.FindAllTripCountriesAsync();
         return Ok(trips);
     }
     
